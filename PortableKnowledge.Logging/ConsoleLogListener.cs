@@ -2,9 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Windows.Forms;
-using System.IO;
-using System.Threading;
 
 // PortableKnowledge Logging Framework for .NET
 // (C) Portable Knowledge, LLC
@@ -34,50 +31,30 @@ using System.Threading;
 namespace PortableKnowledge.Logging
 {
     /// <summary>
-    /// LogListener which updates a given Label control with log message updates.
-    /// The Label updates are guarenteed to be thread safe.
-    /// Any errors updating the label are silently ignored.
+    /// LogListener which writes log message updates to the console.
+    /// The console updates are guarenteed to be thread safe.
+    /// Any errors writing to the console are silently ignored.
     /// </summary>
-    public class LabelLogListener : LogListener
+    public class ConsoleLogListener : LogListener
     {
         /// <summary>
-        /// The label to write the log message updates to
-        /// </summary>
-        public Label label { get { return _label; } }
-
-        /// <summary>
-        /// The label to write the log message updates to
-        /// </summary>
-        protected Label _label;
-
-        /// <summary>
-        /// Initialize a new LabelLogListener instance to write all Log Events from a spcified
-        /// Log to a specific Label control
+        /// Initialize a new ConsoleLogListener instance to write all Log Events from a spcified
+        /// Log to the console
         /// </summary>
         /// <param name="log">Log instance to register this listener with</param>
-        /// <param name="logLabel">Label control to update with log messages</param>
-        public LabelLogListener(Log log, Label logLabel) : base(log)
+        public ConsoleLogListener(Log log)
+            : base(log)
         {
-            this._label = logLabel;
         }
 
         /// <summary>
-        /// Called whenever a new item is added to the registered log.  Changes the text of
-        /// the associated label to the item's Message value.  Ensures that the label update
-        /// only occurs on the GUI thread via the InvokeRequired pattern.
+        /// Called whenever a new item is added to the registered log.  Writes the log message
+        /// to the system console.
         /// </summary>
         /// <param name="item">Details of newly-added log item</param>
         public override void ProcessLogMessage(LogItem item)
         {
-            if (_label.InvokeRequired)
-            {
-                _label.Invoke(new MethodInvoker(() => { ProcessLogMessage(item); }));
-            }
-            else
-            {
-                _label.Text = item.Message;
-                _label.Update();
-            }
+            Console.WriteLine(item.ToString());
         }
 
     }

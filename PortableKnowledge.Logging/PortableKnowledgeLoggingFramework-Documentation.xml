@@ -1,0 +1,578 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>PortableKnowledge.Logging</name>
+    </assembly>
+    <members>
+        <member name="T:PortableKnowledge.Logging.ConsoleLogListener">
+            <summary>
+            LogListener which writes log message updates to the console.
+            The console updates are guarenteed to be thread safe.
+            Any errors writing to the console are silently ignored.
+            </summary>
+        </member>
+        <member name="T:PortableKnowledge.Logging.LogListener">
+            <summary>
+            Base Log Listener class.  Defines virtual methods for handling Logging Events.
+            </summary>
+        </member>
+        <member name="F:PortableKnowledge.Logging.LogListener.LevelFilter">
+            <summary>
+            LogLevel filtering for this Log Listener.  Set to NONE for no filtering,
+            or a bitmask of LogLevel values to listen to log events of just those levels
+            (default: LogLevel.None)
+            </summary>
+        </member>
+        <member name="F:PortableKnowledge.Logging.LogListener.subscribedLog">
+            <summary>
+            Log we are currently subscribed to, so we can unsubscribe if needed.
+            </summary>
+        </member>
+        <member name="M:PortableKnowledge.Logging.LogListener.#ctor">
+            <summary>
+            LogListener instances must be registered with the log they are listening to;
+            The default constructor should never be called in use (hence, a private constructor).
+            </summary>
+        </member>
+        <member name="M:PortableKnowledge.Logging.LogListener.#ctor(PortableKnowledge.Logging.Log)">
+            <summary>
+            Initialize a new LogListener instance registered to receive Log Events from a 
+            specific log.  By default, all log events are received.
+            </summary>
+            <param name="log">Log instance to register this listener with</param>
+        </member>
+        <member name="M:PortableKnowledge.Logging.LogListener.Finalize">
+            <summary>
+            Finalize the LogListener.  Unsubscribes from any subscribed log.
+            </summary>
+        </member>
+        <member name="M:PortableKnowledge.Logging.LogListener.Unsubscribe">
+            <summary>
+            Unregister from the currently-registered log (stop receiving log events from the log)
+            Has no effect if not currently subscribed.
+            </summary>
+        </member>
+        <member name="M:PortableKnowledge.Logging.LogListener.ProcessLogMessage(PortableKnowledge.Logging.LogItem)">
+            <summary>
+            Virtual method called whenever a new item is added to the registered log.
+            Base method simply writes the item message and level to the Visual Studio Debug output; 
+            derived classes should override this method to do something more exotic.
+            </summary>
+            <param name="item">Details of newly-added log item</param>
+        </member>
+        <member name="M:PortableKnowledge.Logging.LogListener.OnLogMessageReceived(PortableKnowledge.Logging.Log,PortableKnowledge.Logging.LogEventArgs)">
+            <summary>
+            Receives a log message from the log, and passes it on to ProcessLogMessage()
+            if the new message matches the currently-active logging filter
+            </summary>
+            <param name="sender">Log sending the new message</param>
+            <param name="e">Details of the log message</param>
+        </member>
+        <member name="M:PortableKnowledge.Logging.ConsoleLogListener.#ctor(PortableKnowledge.Logging.Log)">
+            <summary>
+            Initialize a new ConsoleLogListener instance to write all Log Events from a spcified
+            Log to the console
+            </summary>
+            <param name="log">Log instance to register this listener with</param>
+        </member>
+        <member name="M:PortableKnowledge.Logging.ConsoleLogListener.ProcessLogMessage(PortableKnowledge.Logging.LogItem)">
+            <summary>
+            Called whenever a new item is added to the registered log.  Writes the log message
+            to the system console.
+            </summary>
+            <param name="item">Details of newly-added log item</param>
+        </member>
+        <member name="T:PortableKnowledge.Logging.LabelLogListener">
+            <summary>
+            LogListener which updates a given Label control with log message updates.
+            The Label updates are guarenteed to be thread safe.
+            Any errors updating the label are silently ignored.
+            </summary>
+        </member>
+        <member name="F:PortableKnowledge.Logging.LabelLogListener._label">
+            <summary>
+            The label to write the log message updates to
+            </summary>
+        </member>
+        <member name="M:PortableKnowledge.Logging.LabelLogListener.#ctor(PortableKnowledge.Logging.Log,System.Windows.Forms.Label)">
+            <summary>
+            Initialize a new LabelLogListener instance to write all Log Events from a spcified
+            Log to a specific Label control
+            </summary>
+            <param name="log">Log instance to register this listener with</param>
+            <param name="logLabel">Label control to update with log messages</param>
+        </member>
+        <member name="M:PortableKnowledge.Logging.LabelLogListener.ProcessLogMessage(PortableKnowledge.Logging.LogItem)">
+            <summary>
+            Called whenever a new item is added to the registered log.  Changes the text of
+            the associated label to the item's Message value.  Ensures that the label update
+            only occurs on the GUI thread via the InvokeRequired pattern.
+            </summary>
+            <param name="item">Details of newly-added log item</param>
+        </member>
+        <member name="P:PortableKnowledge.Logging.LabelLogListener.label">
+            <summary>
+            The label to write the log message updates to
+            </summary>
+        </member>
+        <member name="T:PortableKnowledge.Logging.FileLogListener">
+            <summary>
+            LogListener which sends logging messages to a specific file on disk.
+            The File updates are guarenteed to be thread safe.  Log file may safely be deleted
+            at any time, and will be re-created automatically.  The full path to the file may
+            be created if it doesn't exist.  Any errors writing to the file are silently ignored.
+            </summary>
+        </member>
+        <member name="F:PortableKnowledge.Logging.FileLogListener._filePath">
+            <summary>
+            The full path to the file to write the log to
+            </summary>
+        </member>
+        <member name="F:PortableKnowledge.Logging.FileLogListener._fileSync">
+            <summary>
+            Object to lock on to sync file access across threads
+            </summary>
+        </member>
+        <member name="F:PortableKnowledge.Logging.FileLogListener._logRunning">
+            <summary>
+            TRUE while the file log writer is running.  In current implementation, this is
+            always TRUE.
+            </summary>
+        </member>
+        <member name="F:PortableKnowledge.Logging.FileLogListener._logMessages">
+            <summary>
+            Queue containing strings to write to the file.  Strings will be written to the file
+            in atomic, block fashion by the writer thread.
+            </summary>
+        </member>
+        <member name="F:PortableKnowledge.Logging.FileLogListener._logWriterThread">
+            <summary>
+            Thread to actually write log messages to the file.  Writes are done in a background
+            thread so log writing will have low overhead.
+            </summary>
+        </member>
+        <member name="M:PortableKnowledge.Logging.FileLogListener.#ctor(PortableKnowledge.Logging.Log,System.String)">
+            <summary>
+            Initialize a new FileLogListener instance to write all Log Events from a spcified
+            Log to a specific file path
+            </summary>
+            <param name="log">Log instance to register this listener with</param>
+            <param name="FilePathName">Full pathname of file to write log to</param>
+        </member>
+        <member name="M:PortableKnowledge.Logging.FileLogListener.#ctor(PortableKnowledge.Logging.Log,System.String,System.Boolean)">
+            <summary>
+            Initialize a new FileLogListener instance to write all Log Events from a spcified
+            Log to a specific file path, optionally clearing the log file to start
+            </summary>
+            <param name="log">Log instance to register this listener with</param>
+            <param name="FilePathName">Full pathname of file to write log to</param>
+            <param name="ClearAtStart">If TRUE, delete the file at initialization</param>
+        </member>
+        <member name="M:PortableKnowledge.Logging.FileLogListener.AddMessagesToFile">
+            <summary>
+            Worker method to write the log messages to the log file in an atomic manner
+            </summary>
+        </member>
+        <member name="M:PortableKnowledge.Logging.FileLogListener.ProcessLogMessage(PortableKnowledge.Logging.LogItem)">
+            <summary>
+            Called whenever a new item is added to the registered log.  Adds the LogItem
+            to the assocaited log file, creating the log file/path if needed.  File writes
+            are performed on a seperate thread so that return is immediate.
+            </summary>
+            <param name="item">Details of newly-added log item</param>
+        </member>
+        <member name="M:PortableKnowledge.Logging.FileLogListener.EnsureDirectory(System.IO.DirectoryInfo)">
+            <summary>
+            Ensure that a full directory path exists.  If the specified directory, or any
+            intermediate directory, doesn't exist, it is created.
+            </summary>
+            <param name="Path">Full path to ensure existance</param>
+        </member>
+        <member name="M:PortableKnowledge.Logging.FileLogListener.EnsureDirectory(System.String)">
+            <summary>
+            Ensure that a full directory path exists.  If the specified directory, or any
+            intermediate directory, doesn't exist, it is created.
+            </summary>
+            <param name="Path">Full path to ensure existance</param>
+        </member>
+        <member name="P:PortableKnowledge.Logging.FileLogListener.FilePath">
+            <summary>
+            Full pathname of log file.  Pathname may be changed at any time
+            </summary>
+        </member>
+        <member name="T:PortableKnowledge.Logging.GlobalLog">
+            <summary>
+            Implements a singleton Log class to provide a global, application-wide log
+            system.  The global log is lazilly initialized, so does not have performance
+            impact if it is not called (i.e., can be called only in production code)
+            This class is thread-safe.
+            </summary>
+        </member>
+        <member name="T:PortableKnowledge.Logging.Log">
+            <summary>
+            Maintains a list of log listeners, and sends logging events to appropriate
+            registered listeners.
+            </summary>
+        </member>
+        <member name="F:PortableKnowledge.Logging.Log.LogLock">
+            <summary>
+            Dummy object to provide a log-wide locking point
+            </summary>
+        </member>
+        <member name="M:PortableKnowledge.Logging.Log.#ctor">
+            <summary>
+            Initialize a new Log instance.
+            </summary>
+        </member>
+        <member name="M:PortableKnowledge.Logging.Log.Add(PortableKnowledge.Logging.LogItem)">
+            <summary>
+            Send a general logging item to all registered log listeners
+            </summary>
+            <param name="item">Logging item to send</param>
+        </member>
+        <member name="M:PortableKnowledge.Logging.Log.Debug(System.Object,System.String)">
+            <summary>
+            Send a Debug message to all registered log listeners
+            </summary>
+            <param name="sender">The object sending the debug message (usually "this")</param>
+            <param name="message">The text of the message</param>
+        </member>
+        <member name="M:PortableKnowledge.Logging.Log.Debug(System.String)">
+            <summary>
+            Send a Debug message to all registered log listeners
+            </summary>
+            <param name="message">The text of the message</param>
+        </member>
+        <member name="M:PortableKnowledge.Logging.Log.Info(System.Object,System.String)">
+            <summary>
+            Send an Informational message to all registered log listeners
+            </summary>
+            <param name="sender">The object sending the debug message (usually "this")</param>
+            <param name="message">The text of the message</param>
+        </member>
+        <member name="M:PortableKnowledge.Logging.Log.Info(System.String)">
+            <summary>
+            Send an Informational message to all registered log listeners
+            </summary>
+            <param name="message">The text of the message</param>
+        </member>
+        <member name="M:PortableKnowledge.Logging.Log.Warning(System.Object,System.String)">
+            <summary>
+            Send a Warning message to all registered log listeners
+            </summary>
+            <param name="sender">The object sending the debug message (usually "this")</param>
+            <param name="message">The text of the message</param>
+        </member>
+        <member name="M:PortableKnowledge.Logging.Log.Warning(System.String)">
+            <summary>
+            Send a Warning message to all registered log listeners
+            </summary>
+            <param name="message">The text of the message</param>
+        </member>
+        <member name="M:PortableKnowledge.Logging.Log.Error(System.Object,System.String)">
+            <summary>
+            Send a Recoverable Error message to all registered log listeners
+            </summary>
+            <param name="sender">The object sending the debug message (usually "this")</param>
+            <param name="message">The text of the message</param>
+        </member>
+        <member name="M:PortableKnowledge.Logging.Log.Error(System.String)">
+            <summary>
+            Send a Recoverable Error message to all registered log listeners
+            </summary>
+            <param name="message">The text of the message</param>
+        </member>
+        <member name="M:PortableKnowledge.Logging.Log.FatalError(System.Object,System.String)">
+            <summary>
+            Send a Fatal Error message to all registered log listeners
+            </summary>
+            <param name="sender">The object sending the debug message (usually "this")</param>
+            <param name="message">The text of the message</param>
+        </member>
+        <member name="M:PortableKnowledge.Logging.Log.FatalError(System.String)">
+            <summary>
+            Send a Fatal Error message to all registered log listeners
+            </summary>
+            <param name="message">The text of the message</param>
+        </member>
+        <member name="E:PortableKnowledge.Logging.Log.OnLogMessageReceived">
+            <summary>
+            Event raised whenever a new LogItem has been added to the current log
+            </summary>
+        </member>
+        <member name="M:PortableKnowledge.Logging.GlobalLog.#ctor">
+            <summary>
+            Private constructor to force this class to the Singleton pattern
+            </summary>
+        </member>
+        <member name="F:PortableKnowledge.Logging.GlobalLog.loggingEnabled">
+            <summary>
+            Is the GlobalLog enabled?  This is initially FALSE, in which case Instance
+            will return NULL and no LogListeners will register with GlobalLog.  Setting this
+            to TRUE will cause a global log instance to be created with the next reference
+            to Instance.
+            </summary>
+        </member>
+        <member name="P:PortableKnowledge.Logging.GlobalLog.Instance">
+            <summary>
+            Lazy-loaded Instance property. 
+            </summary>
+        </member>
+        <member name="M:PortableKnowledge.Logging.GlobalLog.GlobalLogInternal.#cctor">
+            <summary>
+            Static constructors are guarenteed to execute only upon the first 
+            reference to the class in a given AppDomain.  So, when the static property
+            above first references us, on the first thread in the application, we'll
+            be created.  This ensures thread safty.
+            </summary>
+        </member>
+        <member name="F:PortableKnowledge.Logging.GlobalLog.GlobalLogInternal.instance">
+            <summary>
+            This property will be created upon the first (and only) static creation
+            of this class.  It needs to be internal, so that we can reference it from
+            the GlobalLog class (parent classes don't automatically have full access
+            to members of nested classes)
+            </summary>
+        </member>
+        <member name="T:PortableKnowledge.Logging.ListBoxLogListener">
+            <summary>
+            LogListener which sends logging messages to a specific ListBox.  The ListBox updates are
+            guarenteed to be executed on the main application thread.
+            </summary>
+        </member>
+        <member name="F:PortableKnowledge.Logging.ListBoxLogListener._listBox">
+            <summary>
+            The ListBox that should display log messages
+            </summary>
+        </member>
+        <member name="F:PortableKnowledge.Logging.ListBoxLogListener.MaxLogLines">
+            <summary>
+            The maximum number of lines to allow in the ListBox log
+            </summary>
+        </member>
+        <member name="M:PortableKnowledge.Logging.ListBoxLogListener.#ctor(PortableKnowledge.Logging.Log,System.Windows.Forms.ListBox)">
+            <summary>
+            Initialize a new ListBoxLogListener instance to display all Log Events from a specific 
+            Log to a specific ListBox
+            </summary>
+            <param name="log">Log instance to register this listener with</param>
+            <param name="listBox">ListBox instance to display the log in</param>
+        </member>
+        <member name="M:PortableKnowledge.Logging.ListBoxLogListener.ProcessLogMessage(PortableKnowledge.Logging.LogItem)">
+            <summary>
+            Called whenever a new item is added to the registered log.  Adds the LogItem
+            to the assocaited ListBox control.
+            </summary>
+            <param name="item">Details of newly-added log item</param>
+        </member>
+        <member name="T:PortableKnowledge.Logging.LogEventArgs">
+            <summary>
+            Arguments passed to Logging Events
+            </summary>
+        </member>
+        <member name="F:PortableKnowledge.Logging.LogEventArgs._Item">
+            <summary>
+            The specific log item
+            </summary>
+        </member>
+        <member name="M:PortableKnowledge.Logging.LogEventArgs.#ctor(PortableKnowledge.Logging.LogItem)">
+            <summary>
+            Create a new logging event argument instance
+            </summary>
+            <param name="Item">The LogItem associated with this Logging Event</param>
+        </member>
+        <member name="P:PortableKnowledge.Logging.LogEventArgs.Item">
+            <summary>
+            The specific log item
+            </summary>
+        </member>
+        <member name="T:PortableKnowledge.Logging.LogEventHandler">
+            <summary>
+            Generic handler for Logging system events
+            </summary>
+            <param name="Sender">The Log instance raising the event</param>
+            <param name="e">Information about the particular logging item</param>
+        </member>
+        <member name="T:PortableKnowledge.Logging.LogLevel">
+            <summary>
+            Possible Log Levels; multiple levels may be assigned at once
+            </summary>
+        </member>
+        <member name="F:PortableKnowledge.Logging.LogLevel.None">
+            <summary>
+            No Level. Log listeners will receive all log events; log events will go to all listeners.
+            </summary>
+        </member>
+        <member name="F:PortableKnowledge.Logging.LogLevel.Debug">
+            <summary>
+            Only to be shown for very verbose logging needs
+            </summary>
+        </member>
+        <member name="F:PortableKnowledge.Logging.LogLevel.Info">
+            <summary>
+            Informative.  Status/State messages in the normal flow of operation
+            </summary>
+        </member>
+        <member name="F:PortableKnowledge.Logging.LogLevel.Warning">
+            <summary>
+            Something slightly out-of-normal happened, but can be ignored in most cases
+            </summary>
+        </member>
+        <member name="F:PortableKnowledge.Logging.LogLevel.Error">
+            <summary>
+            A recoverable error has occured
+            </summary>
+        </member>
+        <member name="F:PortableKnowledge.Logging.LogLevel.FatalError">
+            <summary>
+            A fatal, non-recoverable error has occured
+            </summary>
+        </member>
+        <member name="T:PortableKnowledge.Logging.LogItem">
+            <summary>
+            Generic, Immutable Log Item.  Instances of this class contain the complete information for one item in a log.
+            </summary>
+        </member>
+        <member name="M:PortableKnowledge.Logging.LogItem.#ctor(System.Object,PortableKnowledge.Logging.LogLevel,System.UInt32,System.String)">
+            <summary>
+            Create a new LogItem instance
+            </summary>
+            <param name="sender">The object generating this log message</param>
+            <param name="level">The LogLevel for this message</param>
+            <param name="code">The application-defined code number for this message (0 if no code)</param>
+            <param name="message">The actual text of the message</param>
+        </member>
+        <member name="M:PortableKnowledge.Logging.LogItem.#ctor(System.Object,PortableKnowledge.Logging.LogLevel,System.String)">
+            <summary>
+            Create a new LogItem instance
+            </summary>
+            <param name="sender">The object generating this log message</param>
+            <param name="level">The LogLevel for this message</param>
+            <param name="message">The actual text of the message</param>
+        </member>
+        <member name="M:PortableKnowledge.Logging.LogItem.ToString(System.String)">
+            <summary>
+            Return the string representation of the LogItem, with the components seperatated
+            by the given delimiter string.
+            </summary>
+            <param name="delim">Delimiter to use between LogItem parts</param>
+            <returns>String containing formatted LogItem details, deliminated by delim</returns>
+        </member>
+        <member name="M:PortableKnowledge.Logging.LogItem.ToString">
+            <summary>
+            Return the string representation of the LogItem, with the components seperatated
+            a single space character
+            </summary>
+            <returns>String containing formatted, space-delimited LogItem details</returns>
+        </member>
+        <member name="P:PortableKnowledge.Logging.LogItem.Sender">
+            <summary>
+            Object which created this log event
+            </summary>
+        </member>
+        <member name="P:PortableKnowledge.Logging.LogItem.Timestamp">
+            <summary>
+            Timestamp of the event
+            </summary>
+        </member>
+        <member name="P:PortableKnowledge.Logging.LogItem.Level">
+            <summary>
+            Event Logging Level
+            </summary>
+        </member>
+        <member name="P:PortableKnowledge.Logging.LogItem.Code">
+            <summary>
+            Application-defined code number for this event, or 0 if no code was given
+            </summary>
+        </member>
+        <member name="P:PortableKnowledge.Logging.LogItem.Message">
+            <summary>
+            Event Message
+            </summary>
+        </member>
+        <member name="T:PortableKnowledge.Logging.MessageBoxLogListener">
+            <summary>
+            LogListener which shows logging messages in a new MessageBox.  The body of the MessageBox contains
+            the log message, the caption lists the log level.  The only button on the MessageBox is "OK"
+            The MessageBox guarenteed to be executed on the main application thread.
+            </summary>
+        </member>
+        <member name="F:PortableKnowledge.Logging.MessageBoxLogListener._parentForm">
+            <summary>
+            Windows form in which to display the MessageBox
+            </summary>
+        </member>
+        <member name="M:PortableKnowledge.Logging.MessageBoxLogListener.#ctor(PortableKnowledge.Logging.Log,System.Windows.Forms.Form)">
+            <summary>
+            Initialize a new MessageBoxLogListener
+            </summary>
+            <param name="log">Log instance to register this listener with</param>
+            <param name="MessageBoxParent">The Form on which the MessageBox should be modally displayed.  Must NOT be NULL.</param>
+        </member>
+        <member name="M:PortableKnowledge.Logging.MessageBoxLogListener.ProcessLogMessage(PortableKnowledge.Logging.LogItem)">
+            <summary>
+            Called whenever a new item is added to the registered log.  Adds the LogItem
+            to the assocaited ListBox control.
+            </summary>
+            <param name="item">Details of newly-added log item</param>
+        </member>
+        <member name="T:PortableKnowledge.Logging.NullLog">
+            <summary>
+            A "NULL" Log subclass.  Instances of this class do nothing, and any calls to methods of this subclass
+            should be optimized away by the JIT compiler.  This class just provides empty method implementations
+            to avoid NullReferenceExecptions being thrown when attempting to access methods of NULL log entries.
+            </summary>
+        </member>
+        <member name="M:PortableKnowledge.Logging.NullLog.#ctor">
+            <summary>
+            Initialize a new NullLog instance.
+            </summary>
+        </member>
+        <member name="M:PortableKnowledge.Logging.NullLog.Add(PortableKnowledge.Logging.LogItem)">
+            <summary>
+            Send a general logging item to all registered log listeners
+            </summary>
+            <param name="item">Logging item to send</param>
+        </member>
+        <member name="M:PortableKnowledge.Logging.NullLog.Debug(System.Object,System.String)">
+            <summary>
+            Send a Debug message to all registered log listeners
+            </summary>
+            <param name="sender">The object sending the debug message (usually "this")</param>
+            <param name="message">The text of the message</param>
+        </member>
+        <member name="M:PortableKnowledge.Logging.NullLog.Info(System.Object,System.String)">
+            <summary>
+            Send an Informational message to all registered log listeners
+            </summary>
+            <param name="sender">The object sending the debug message (usually "this")</param>
+            <param name="message">The text of the message</param>
+        </member>
+        <member name="M:PortableKnowledge.Logging.NullLog.Warning(System.Object,System.String)">
+            <summary>
+            Send a Warning message to all registered log listeners
+            </summary>
+            <param name="sender">The object sending the debug message (usually "this")</param>
+            <param name="message">The text of the message</param>
+        </member>
+        <member name="M:PortableKnowledge.Logging.NullLog.Error(System.Object,System.String)">
+            <summary>
+            Send a Recoverable Error message to all registered log listeners
+            </summary>
+            <param name="sender">The object sending the debug message (usually "this")</param>
+            <param name="message">The text of the message</param>
+        </member>
+        <member name="M:PortableKnowledge.Logging.NullLog.FatalError(System.Object,System.String)">
+            <summary>
+            Send a Fatal Error message to all registered log listeners
+            </summary>
+            <param name="sender">The object sending the debug message (usually "this")</param>
+            <param name="message">The text of the message</param>
+        </member>
+        <member name="E:PortableKnowledge.Logging.NullLog.OnLogMessageReceived">
+            <summary>
+            Event raised whenever a new LogItem has been added to the current log
+            </summary>
+        </member>
+    </members>
+</doc>
